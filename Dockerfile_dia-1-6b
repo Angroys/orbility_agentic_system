@@ -1,0 +1,8 @@
+FROM python:3.12
+WORKDIR /app
+RUN pip install --no-cache-dir torch soundfile numpy fastapi uvicorn python-dotenv huggingface_hub git+https://github.com/nari-labs/dia.git
+COPY .env . 
+RUN apt-get update && apt-get install -y ffmpeg libsndfile1
+COPY ai/routers/dia-1-6b.py .
+EXPOSE 8010
+CMD uvicorn dia-1-6b:app --host 0.0.0.0 --port 8010
