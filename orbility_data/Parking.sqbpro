@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="Parking.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="4296"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="ticket" custom_title="0" dock_id="1" table="4,6:mainticket"/><dock_state state="000000ff00000000fd00000001000000020000043c000002b6fc0100000001fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000011800ffffff000002580000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="discount_rule" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="35"/><column index="3" value="32"/><column index="4" value="38"/><column index="5" value="68"/><column index="6" value="53"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="event" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="68"/><column index="3" value="66"/><column index="4" value="33"/><column index="5" value="75"/><column index="6" value="82"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="occupancy_log" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="54"/><column index="3" value="36"/><column index="4" value="46"/><column index="5" value="75"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="ticket" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="35"/><column index="3" value="62"/><column index="4" value="85"/><column index="5" value="43"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="v_active_sessions" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="68"/><column index="3" value="52"/><column index="4" value="65"/><column index="5" value="57"/><column index="6" value="70"/><column index="7" value="83"/><column index="8" value="61"/><column index="9" value="75"/><column index="10" value="43"/><column index="11" value="115"/><column index="12" value="118"/><column index="13" value="64"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="zone" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="29"/><column index="2" value="70"/><column index="3" value="39"/><column index="4" value="54"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1*">-- 0) Core lookups
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE parking (
+  id            INTEGER PRIMARY KEY,
+  name          TEXT NOT NULL
+);
+
+CREATE TABLE zone (
+  id            INTEGER PRIMARY KEY,
+  parking_id    INTEGER NOT NULL REFERENCES parking(id),
+  name          TEXT NOT NULL,
+  capacity      INTEGER NOT NULL
+);
+
+CREATE TABLE station (
+  id            INTEGER PRIMARY KEY,
+  zone_id       INTEGER NOT NULL REFERENCES zone(id),
+  kind          TEXT NOT NULL CHECK (kind IN ('ENTRY','EXIT','PAYMENT','PEDESTRIAN')),
+  label         TEXT NOT NULL
+);
+
+-- 1) Identification (plate or ticket)
+CREATE TABLE vehicle (
+  id            INTEGER PRIMARY KEY,
+  plate         TEXT UNIQUE               -- nullable for ticketed/lost-ticket cases
+);
+
+CREATE TABLE ticket (
+  id            INTEGER PRIMARY KEY,
+  code          TEXT UNIQUE NOT NULL,
+  issued_at     DATETIME NOT NULL,
+  entry_station INTEGER REFERENCES station(id),
+  status        TEXT NOT NULL DEFAULT 'ACTIVE'  -- ACTIVE | PAID | LOST | CLOSED
+);
+
+-- 2) Parking session (one car in the car park)
+CREATE TABLE session (
+  id              INTEGER PRIMARY KEY,
+  parking_id      INTEGER NOT NULL REFERENCES parking(id),
+  zone_id         INTEGER NOT NULL REFERENCES zone(id),
+  vehicle_id      INTEGER REFERENCES vehicle(id),  -- null for anonymous/ticket-only
+  ticket_id       INTEGER REFERENCES ticket(id),   -- null for pure ticketless
+  entry_time      DATETIME NOT NULL,
+  entry_station   INTEGER REFERENCES station(id),
+  exit_time       DATETIME,                        -- null until car leaves
+  exit_station    INTEGER REFERENCES station(id),
+  status          TEXT NOT NULL CHECK (status IN ('OPEN','PAID','CLOSED','VOID')) DEFAULT 'OPEN',
+  amount_due_cents   INTEGER NOT NULL DEFAULT 0,
+  amount_paid_cents  INTEGER NOT NULL DEFAULT 0,
+  paid_until      DATETIME                         -- “allow exit window” after payment
+);
+
+CREATE INDEX idx_session_open ON session(status, entry_time);
+CREATE INDEX idx_session_vehicle ON session(vehicle_id);
+CREATE INDEX idx_session_ticket ON session(ticket_id);
+
+-- 3) Events timeline (for audit &amp; the diamond boxes in the flow)
+CREATE TABLE event (
+  id            INTEGER PRIMARY KEY,
+  session_id    INTEGER REFERENCES session(id),
+  station_id    INTEGER REFERENCES station(id),
+  type          TEXT NOT NULL CHECK (type IN (
+                  'ENTRY','PAYMENT_STARTED','PAYMENT_OK','PAYMENT_FAILED',
+                  'DISCOUNT_APPLIED','EXIT','BARRIER_RAISE','BARRIER_LOWER','INFO'
+                 )),
+  occurred_at   DATETIME NOT NULL,
+  payload_json  TEXT            -- free-form: plate read, reason, amounts, acquirer msg, etc.
+);
+CREATE INDEX idx_event_session_time ON event(session_id, occurred_at);
+
+-- 4) Tariffs/discounts/vouchers (kept simple)
+CREATE TABLE tariff (
+  id            INTEGER PRIMARY KEY,
+  name          TEXT NOT NULL,
+  free_minutes  INTEGER NOT NULL DEFAULT 0,
+  rate_cents_per_hour INTEGER NOT NULL,
+  max_daily_cents     INTEGER
+);
+
+CREATE TABLE discount_rule (
+  id            INTEGER PRIMARY KEY,
+  code          TEXT UNIQUE NOT NULL,         -- QR / promo / merchant code
+  kind          TEXT NOT NULL CHECK (kind IN ('PERCENT','FIXED')),
+  value         INTEGER NOT NULL,             -- percent or cents
+  valid_from    DATETIME,
+  valid_to      DATETIME
+);
+
+CREATE TABLE voucher (
+  id            INTEGER PRIMARY KEY,
+  code          TEXT UNIQUE NOT NULL,
+  balance_cents INTEGER NOT NULL,
+  expires_at    DATETIME
+);
+
+-- 5) Payments (cash or card), with optional discount/voucher linkage
+CREATE TABLE payment (
+  id               INTEGER PRIMARY KEY,
+  session_id       INTEGER NOT NULL REFERENCES session(id),
+  station_id       INTEGER REFERENCES station(id),
+  method           TEXT NOT NULL CHECK (method IN ('CASH','CARD','VOUCHER')),
+  amount_cents     INTEGER NOT NULL,
+  approved         INTEGER NOT NULL CHECK (approved IN (0,1)),
+  processor_ref    TEXT,                 -- acquirer/receipt/reference
+  created_at       DATETIME NOT NULL
+);
+CREATE INDEX idx_payment_session ON payment(session_id);
+
+CREATE TABLE payment_discount (
+  payment_id       INTEGER NOT NULL REFERENCES payment(id) ON DELETE CASCADE,
+  discount_id      INTEGER NOT NULL REFERENCES discount_rule(id),
+  PRIMARY KEY (payment_id, discount_id)
+);
+
+CREATE TABLE payment_voucher (
+  payment_id       INTEGER NOT NULL REFERENCES payment(id) ON DELETE CASCADE,
+  voucher_id       INTEGER NOT NULL REFERENCES voucher(id),
+  amount_cents     INTEGER NOT NULL,
+  PRIMARY KEY (payment_id, voucher_id)
+);
+
+-- 6) Helpful views
+CREATE VIEW v_active_sessions AS
+SELECT s.*
+FROM session s
+WHERE s.status IN ('OPEN','PAID') AND s.exit_time IS NULL;
+
+-- 7) (Optional) simple occupancy log to mirror your “increment/decrement occupied counter”
+CREATE TABLE occupancy_log (
+  id            INTEGER PRIMARY KEY,
+  zone_id       INTEGER NOT NULL REFERENCES zone(id),
+  delta         INTEGER NOT NULL CHECK (delta IN (1,-1)),  -- +1 entry, -1 exit
+  reason        TEXT NOT NULL CHECK (reason IN ('ENTRY','EXIT','ADJUST')),
+  occurred_at   DATETIME NOT NULL
+);
+CREATE INDEX idx_occupancy_zone_time ON occupancy_log(zone_id, occurred_at);
+</sql><current_tab id="0"/></tab_sql></sqlb_project>
