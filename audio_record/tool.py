@@ -12,7 +12,7 @@ class VoiceRecorder:
     to a WAV file when silence is detected.
     """
 
-    def __init__(self, device_name_fragment="DJI", rate=16000, frame_duration=30, vad_aggressiveness=3):
+    def __init__(self, device_name_fragment="DJI", rate=16000, frame_duration=30, vad_aggressiveness=2):
         """
         Initializes the VoiceRecorder with audio configurations.
 
