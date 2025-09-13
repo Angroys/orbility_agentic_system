@@ -82,21 +82,96 @@ def extract_vrn_candidates(text: str) -> List[str]:
 INTENTS = ("payment_issue", "payment_not_registered", "lost_ticket", "vrn_mismatch", "other")
 INTENT_PATTERNS = {
     "lost_ticket": [
+        # Original
         r"\blost\b.*\bticket\b", r"\bticket\b.*\blost\b",
+        # Romanian
         r"\bbilet\b.*\bpierdut\b", r"\bpierdut\b.*\bbilet\b",
+        # --- First English Expansion ---
+        r"\b(can't find|cannot find|don't have)\b.*\b(my|the)\b.*\b(ticket|card)\b",
+        r"\b(my|the)\b.*\b(ticket|card)\b.*\b(is missing|is gone)\b",
+        r"\b(misplaced|forgot|left)\b.*\b(my|the)\b.*\b(ticket|card|slip)\b",
+        r"\bwhere is my ticket\b",
+        r"\bhave no ticket\b",
+        r"\bwithout\b.*\b(a|my)\b.*\bticket\b",
+        r"\bno longer have\b.*\b(my|the)\b.*\bticket\b",
+        # --- Second English Expansion ---
+        r"\bhow do I (pay|exit)\b.*\bwithout (a|my) ticket\b",
+        r"\bwhat happens if\b.*\b(lost|lose)\b.*\bticket\b",
+        r"\b(help|assistance)\b.*\bI've lost my ticket\b",
+        r"\bI seem to have misplaced the (parking|entry) (slip|pass)\b",
+        r"\bno idea where my ticket went\b",
+        r"\bfee for a lost ticket\b",
+        r"\bI am unable to locate my ticket\b",
+        r"\bI think I threw away my ticket\b",
+        r"\bThe machine didn't give me a ticket\b", # Implies they don't have one
     ],
     "payment_not_registered": [
+        # Original
         r"\bpaid\b.*\bnot\b", r"\bpayment\b.*\bnot\b.*(shown|processed|registered)",
+        # Romanian
         r"\bam plătit\b.*\bnu\b", r"\bplata\b.*\bnu\b.*(apare|procesată|înregistrată)",
+        # --- First English Expansion ---
+        r"\b(already|have)\b.*\bpaid\b.*\b(but|and)\b",
+        r"\bpayment\b.*\b(didn't|did not)\b.*\b(go through|work|register)\b",
+        r"\b(it's|it is)\b.*\bnot showing\b.*\b(that I|I've)\b.*\bpaid\b",
+        r"\b(system|machine)\b.*\b(still says|is showing)\b.*\b(unpaid|payment due|owe money)\b",
+        r"\bpayment\b.*\b(not|hasn't)\b.*\b(reflecting|updated|cleared)\b",
+        r"\b(I have a|got a)\b.*\breceipt\b.*\b(but|and)\b.*\b(not open|won't work)\b",
+        r"\b(took my money)\b.*\b(but|and)\b.*\b(didn't register|nothing happened)\b",
+        # --- Second English Expansion ---
+        r"\b(my bank|bank account)\b.*\b(was charged|shows a debit|confirms payment)\b",
+        r"\b(the transaction|payment)\b.*\b(is pending|is confirmed|was successful)\b",
+        r"\b(gate|barrier)\b.*\b(won't open|is still down|didn't lift)\b.*\b(after|even though)\b.*\bI paid\b",
+        r"\b(it's|it is) asking me to pay again\b",
+        r"\bpayment\b.*\b(not showing up|hasn't posted|is not in the system)\b",
+        r"\bI can show you the (receipt|bank statement)\b",
+        r"\bmy card was charged but the light is still red\b",
+        r"\b(it wants|says I need)\b.*\b(more money|to pay)\b.*\b(but I already did)\b",
     ],
     "payment_issue": [
+        # Original
         r"(can't|cannot|unable).*\bpay\b", r"\bno card\b", r"\bfără card\b",
         r"\bmachine\b.*(broken|error)", r"\bterminal\b.*(broken|error|stricat|eroare)",
         r"\bnu pot plăti\b", r"\bnu am card\b",
+        # --- First English Expansion ---
+        r"\b(card|payment)\b.*\b(rejected|declined|failed)\b",
+        r"\b(machine|terminal|reader)\b.*\b(not working|frozen|jammed|not accepting|won't take)\b",
+        r"\b(won't|will not|doesn't|does not)\b.*\b(accept|take|read)\b.*\b(my|the)\b.*\bcard\b",
+        r"\b(screen|display)\b.*\b(is off|is black|frozen|blank)\b",
+        r"\b(only have|paying with)\b.*\bcash\b",
+        r"\bproblem with\b.*\b(payment|paying|the machine)\b",
+        r"\b(credit|debit)\b.*\bcard error\b",
+        # --- Second English Expansion ---
+        r"\b(contactless|tap to pay|NFC|Apple Pay|Google Pay)\b.*\b(not working|failed|unavailable)\b",
+        r"\b(chip|card reader)\b.*\b(error|is broken|faulty)\b",
+        r"\b(machine|terminal)\b.*\b(ate|kept|swallowed|won't return)\b.*\bmy card\b",
+        r"\b(not giving|no|out of)\b.*\bchange\b",
+        r"\b(coin|bill)\b.*\b(slot|acceptor)\b.*\b(is full|is jammed)\b",
+        r"\b(I've|I have)\b.*\b(tried|used)\b.*\b(multiple|another|different)\b.*\bcards\b",
+        r"\b(is there another|where is the next)\b.*\b(machine|terminal)\b",
+        r"\b(it says|shows|getting a)\b.*\b(transaction cancelled|communication error|system busy)\b",
     ],
     "vrn_mismatch": [
+        # Original
         r"\b(plate|number|număr)\b.*(wrong|incorrect|mismatch|nu.*corect)",
         r"\bnu\b.*\b(mașina mea|numărul meu)\b",
+        # --- First English Expansion ---
+        r"\b(license plate|registration|tag)\b.*\b(doesn't match|not right|mistaken|is different)\b",
+        r"\b(that's|that is|it shows)\b.*\b(not my car|the wrong car|a different vehicle)\b",
+        r"\b(camera|system)\b.*\b(misread|made a mistake|got it wrong|captured incorrectly)\b",
+        r"\b(characters|letters|digits)\b.*\b(on the plate)\b.*\b(are wrong|are incorrect)\b",
+        r"\b(shows|displays)\b.*\b(the wrong|an incorrect)\b.*\b(plate|registration|number)\b",
+        r"\bthe number is not mine\b",
+        r"\bmy car has a different plate\b",
+        # --- Second English Expansion ---
+        r"\b(some of the|the)\b.*\b(letters|digits|characters)\b.*\b(are mixed up|are flipped|are backwards)\b",
+        r"\b(it's|it is)\b.*\b(off by one|one character is wrong|partially correct|almost right)\b",
+        r"\b(camera angle|is dirty|glare on the lens)\b.*\b(caused a|must have)\b.*\bmisread\b",
+        r"\b(the plate on screen|the one it shows)\b.*\b(is not mine|belongs to someone else)\b",
+        r"\b(can you|how do I)\b.*\b(correct|fix|change|update)\b.*\b(the plate|the number)\b",
+        r"\bmy plate (starts|ends) with\b",
+        r"\bThe system has the wrong vehicle associated with me\b",
+        r"\bIt has combined letters from another car\b",
     ],
 }
 
