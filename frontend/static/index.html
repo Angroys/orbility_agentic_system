@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Parking Assistant</title>
+  <style>
+    #waveform { width: 100%; height: 150px; background: #111; }
+    button { margin: 10px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h2>🎤 Speak to the Parking Assistant</h2>
+  <canvas id="waveform"></canvas>
+  <button id="record">Start / Stop</button>
+  <pre id="output"></pre>
+
+  <script>
+    let mediaRecorder, chunks = [];
+    const button = document.getElementById("record");
+    const canvas = document.getElementById("waveform");
+    const ctx = canvas.getContext("2d");
+    let animationId;
+
+    button.onclick = async () => {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+
+        // Setup analyser for waveform
+        const audioCtx = new AudioContext();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+          animationId = requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(dataArray);
+          ctx.fillStyle = "#111";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = "#0f0";
+          for (let i = 0; i < bufferLength; i++) {
+            const barHeight = dataArray[i] / 2;
+            ctx.fillRect(i * 3, canvas.height - barHeight, 2, barHeight);
+          }
+        }
+        draw();
+
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          cancelAnimationFrame(animationId);
+          const blob = new Blob(chunks, { type: "audio/wav" });
+          chunks = [];
+          const formData = new FormData();
+          formData.append("file", blob, "recording.wav");
+
+          const resp = await fetch("/upload", { method: "POST", body: formData });
+          const data = await resp.json();
+          document.getElementById("output").innerText = JSON.stringify(data, null, 2);
+        };
+
+        mediaRecorder.start();
+      } else {
+        mediaRecorder.stop();
+      }
+    };
+  </script>
+</body>
+</html>
