@@ -1,4 +1,4 @@
-from dependencies.slm import SLMConfig
+from docker.gemma3b.slm import SLMConfig
 
 
 config = SLMConfig(

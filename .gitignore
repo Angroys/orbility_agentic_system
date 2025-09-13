@@ -2,3 +2,4 @@
 venv
 env
 /frontend/.gradio
+__pycache__
