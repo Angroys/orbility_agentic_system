@@ -1,0 +1,8 @@
+torch 
+torchaudio
+gradio 
+requests
+qrcode 
+fastapi 
+uvicorn
+pillow
