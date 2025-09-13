@@ -1,11 +1,9 @@
 from huggingface_hub import login
-from transformers import pipeline
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 from dataclasses import dataclass
 
 
-# Config for all SLM parameters
 @dataclass
 class SLMConfig:
     token: str
@@ -16,7 +14,6 @@ class SLMConfig:
     skip_special_tokens: bool
 
 
-# Main Model
 class SLM:
     def __init__(
         self,
@@ -29,14 +26,12 @@ class SLM:
             model_id=self.__config.model_id
         )
 
-    # Auth in haggingface
     @staticmethod
     def __auth(
         token,
     ):
         login(token=token)
 
-    # Create tokenizer and model
     @staticmethod
     def __create_model(
         model_id: str,
@@ -90,44 +85,3 @@ class SLM:
         response = self.__decode(outputs=outputs, skip_special_tokens=True)
 
         return response.split("<@<FINISHED&SYSTEM&USER&PROMPT>@>\nmodel\n")[-1]
-
-
-# Simple example
-if __name__ == "__main__":
-    # Init configuration
-    config = SLMConfig(
-        token="",
-        model_id="google/gemma-3-1B-it",
-        return_tensors="pt",
-        max_new_tokens=500,
-        temperature=0.8,
-        skip_special_tokens=True,
-    )
-
-    slm = SLM(
-        config=config,
-    )  # Create model
-
-    # --------------------------------------------------------
-
-    # Example prompt
-    prompt = [
-        [
-            {
-                "role": "system",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": """
-            You are an AI assistant that answers any question the user asks.
-            """,
-                    }
-                ],
-            },
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": "What is your name?"}],
-            },
-        ],
-    ]
-    slm.input(prompt=prompt)

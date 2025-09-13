@@ -5,4 +5,3 @@ def compare_entry_and_exit_license_plate(entry_plate, exit_plate):
     return fuzz.ratio(entry_plate, exit_plate)/100
 
 
-print(compare_entry_and_exit_license_plate("A8C123", "ABC123"))
