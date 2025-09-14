@@ -1,0 +1,11 @@
+{
+    "event": {
+        "session_id": 1,
+        "station_id": 1,
+        "type": "INFO",
+        "occurred_at": "2025-09-12 10:00:00",
+        "payload_json": {
+            "note": "note"
+        }
+    }
+}
