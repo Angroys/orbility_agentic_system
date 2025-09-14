@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  fastapi:
+    build: ./decision_engine
+    container_name: fastapi
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./decision_engine:/app
+      - ./orbility_data:/data
+    environment:
+      - DB_PATH=/data/Parking.db   # ✅ this ensures FastAPI uses the mounted DB
+    command: uvicorn parking_engine:app --host 0.0.0.0 --port 8002
+    networks:
+      - parking_net
+
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - DB_TYPE=sqlite
+      - DB_SQLITE_VACUUM_ON_STARTUP=true
+      - DB_SQLITE_POOL_SIZE=5
+      - GENERIC_TIMEZONE=Europe/Bucharest
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: always
+    networks:
+      - parking_net 
+    depends_on:
+      - fastapi 
+volumes:
+  n8n_data:
+    external: true
+
+networks:
+  parking_net:
+    driver: bridge

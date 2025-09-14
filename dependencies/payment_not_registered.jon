@@ -1,0 +1,35 @@
+[
+  {
+    "EVENT": {
+      "session_id": "S2",
+      "type": "ENTRY",
+      "ts": "2025-09-14T07:45:00Z",
+      "ticket_id": "T200",
+      "vrn": "CJ45ABC",
+      "payload": "{}",
+      "amount": null
+    }
+  },
+  {
+    "EVENT": {
+      "session_id": "S2",
+      "type": "CHARGE",
+      "ts": "2025-09-14T09:00:00Z",
+      "ticket_id": "T200",
+      "vrn": "CJ45ABC",
+      "payload": "{}",
+      "amount": 40.0
+    }
+  },
+  {
+    "EVENT": {
+      "session_id": "S2",
+      "type": "PAYMENT",
+      "ts": "2025-09-14T09:05:00Z",
+      "ticket_id": "T200",
+      "vrn": "CJ45ABC",
+      "payload": "{}",
+      "amount": 40.0
+    }
+  }
+]
