@@ -1,0 +1,11 @@
+{
+  "EVENT": {
+    "session_id": "S1",
+    "type": "ENTRY",
+    "ts": "2025-09-14T08:00:00Z",
+    "ticket_id": "T123",
+    "vrn": "B123XYZ",
+    "payload": "{}",
+    "amount": null
+  }
+}
